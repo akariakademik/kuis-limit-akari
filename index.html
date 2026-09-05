@@ -28,6 +28,7 @@
             --card-bg: #ffffff;
             --text-main: #1e293b;
             --text-muted: #64748b;
+            --warning: #f59e0b;
         }
 
         * {
@@ -55,6 +56,35 @@
 
         h1, h2, h3 { text-align: center; margin-bottom: 15px; }
         
+        .info-panel {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.95rem;
+        }
+
+        .info-panel ul { margin-left: 20px; margin-top: 5px; }
+
+        .quiz-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background: #f1f5f9;
+            padding: 10px 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        .timer { color: var(--danger); font-size: 1.1rem; }
+        
+        .stats { display: flex; gap: 15px; }
+        .stat-benar { color: var(--success); }
+        .stat-salah { color: var(--danger); }
+
         .level-badge {
             display: inline-block;
             padding: 4px 10px;
@@ -73,7 +103,7 @@
             height: 8px;
             background: #e2e8f0;
             border-radius: 4px;
-            margin-bottom: 20px;
+            margin-bottom: 15px;
             overflow: hidden;
         }
 
@@ -111,11 +141,12 @@
             align-items: center;
         }
 
-        .option-btn:hover { background: #e2e8f0; }
+        .option-btn:hover:not(.disabled) { background: #e2e8f0; }
         .option-btn.selected {
             border-color: var(--primary);
             background: #eff6ff;
         }
+        .option-btn.disabled { cursor: not-allowed; opacity: 0.8; }
 
         .btn-main {
             display: block;
@@ -134,6 +165,19 @@
 
         .btn-main:hover { background: var(--primary-hover); }
         .btn-main:disabled { background: #94a3b8; cursor: not-allowed; }
+        
+        .btn-next { background: var(--warning); color: #fff; }
+        .btn-next:hover { background: #d97706; }
+
+        .feedback-banner {
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 20px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .feedback-correct { background: #dcfce7; color: #166534; border: 1px solid #bbf7d0; }
+        .feedback-wrong { background: #fee2e2; color: #991b1b; border: 1px solid #fecaca; }
 
         .hidden { display: none; }
 
@@ -161,13 +205,12 @@
             border-radius: 8px;
             text-align: left;
         }
-        .correct-text { color: var(--success); font-weight: bold; }
-        .wrong-text { color: var(--danger); font-weight: bold; }
         
         /* Mobile adjustment */
         @media (max-width: 480px) {
             .container { padding: 15px; }
             .option-btn { font-size: 0.95rem; padding: 12px; }
+            .quiz-header { flex-direction: column; gap: 10px; }
         }
     </style>
 </head>
@@ -178,19 +221,41 @@
     <!-- Layar Mulai -->
     <div id="screen-start">
         <h1>Kuis Adaptif Limit Fungsi</h1>
-        <p style="text-align: center; margin-bottom: 20px; color: var(--text-muted);">
-            UTBK/SNBT Preparation<br>Total 10 Soal. Skor minimal lulus: 80.
-        </p>
-        <ul style="margin-left: 20px; margin-bottom: 25px; color: var(--text-muted);">
-            <li>Level 1: Limit Pemfaktoran Aljabar</li>
-            <li>Level 2: Limit Bentuk Akar Sekawan</li>
-            <li>Level 3: Limit Trigonometri</li>
-        </ul>
-        <button class="btn-main" onclick="startQuiz()">Mulai Kuis</button>
+        
+        <div class="info-panel">
+            <strong>Detail Kuis:</strong>
+            <ul>
+                <li><strong>Topik:</strong> Limit Pemfaktoran Aljabar, Akar Sekawan, & Trigonometri Dasar.</li>
+                <li><strong>Jumlah Soal:</strong> 10 Butir (Tingkat kesulitan menyesuaikan kemampuanmu).</li>
+                <li><strong>Waktu Maksimal:</strong> 30 Menit. Kuis otomatis ditutup jika waktu habis.</li>
+                <li><strong>KKM (Kriteria Kelulusan):</strong> Skor 80 (Minimal menjawab 8 soal dengan benar).</li>
+            </ul>
+        </div>
+
+        <div class="info-panel" style="background: #fef3c7; border-color: #fde68a;">
+            <strong>Pengetahuan Prasyarat:</strong>
+            <ul>
+                <li>Mampu memfaktorkan persamaan kuadrat \(ax^2 + bx + c\).</li>
+                <li>Mampu mengoperasikan perkalian akar sekawan.</li>
+                <li>Memahami identitas trigonometri (khususnya \(1 - \cos(ax) = 2 \sin^2(\frac{a}{2}x)\)).</li>
+            </ul>
+        </div>
+
+        <button class="btn-main" onclick="startQuiz()">Mulai Kerjakan</button>
     </div>
 
     <!-- Layar Kuis -->
     <div id="screen-quiz" class="hidden">
+        
+        <!-- Header: Timer & Stats -->
+        <div class="quiz-header">
+            <div class="timer">⏱️ Waktu: <span id="timer-display">30:00</span></div>
+            <div class="stats">
+                <span class="stat-benar">✅ Benar: <span id="stat-correct">0</span></span>
+                <span class="stat-salah">❌ Salah: <span id="stat-wrong">0</span></span>
+            </div>
+        </div>
+
         <div class="progress-bar"><div class="progress-fill" id="progress-bar-fill"></div></div>
         
         <div style="display: flex; justify-content: space-between; align-items: center;">
@@ -206,38 +271,39 @@
             <!-- Opsi dirender di sini -->
         </div>
 
-        <button class="btn-main" id="btn-next" onclick="submitAnswer()" disabled>Jawab & Lanjut</button>
+        <!-- Feedback Jawaban Instan -->
+        <div id="feedback-container" class="feedback-banner hidden"></div>
+
+        <button class="btn-main" id="btn-submit" onclick="submitAnswer()" disabled>Cek Jawaban</button>
+        <button class="btn-main btn-next hidden" id="btn-next-question" onclick="processNextQuestion()">Lanjut Soal Berikutnya ➔</button>
     </div>
 
     <!-- Layar Hasil -->
     <div id="screen-result" class="hidden result-box">
-        <h2>Hasil Kuis</h2>
+        <h2>Hasil Akhir Kuis</h2>
         <div id="score-circle" class="score-circle">100</div>
         <h3 id="pass-status"></h3>
         <p id="result-message" style="margin-bottom: 20px; color: var(--text-muted);"></p>
         
-        <button class="btn-main" onclick="showExplanations()" style="margin-bottom: 10px;">Lihat Pembahasan Lengkap</button>
-        <button class="btn-main" onclick="location.reload()" style="background: var(--text-muted);">Ulangi Kuis</button>
+        <button class="btn-main" onclick="showExplanations()" style="margin-bottom: 10px;">Lihat Pembahasan Step-by-Step</button>
+        <button class="btn-main" onclick="location.reload()" style="background: var(--text-muted);">Kembali ke Beranda</button>
     </div>
 
     <!-- Layar Pembahasan -->
     <div id="screen-explanation" class="hidden">
-        <h2>Pembahasan Step-by-Step</h2>
+        <h2>Pembahasan Lengkap</h2>
         <div id="explanations-container"></div>
-        <button class="btn-main" onclick="location.reload()">Selesai & Kembali ke Awal</button>
+        <button class="btn-main" onclick="location.reload()">Selesai & Tutup</button>
     </div>
 
 </div>
 
 <script>
     // --- UTILITIES ---
-    
-    // Fungsi untuk mendapatkan angka acak [min, max]
     function getRandomInt(min, max) {
         return Math.floor(Math.random() * (max - min + 1)) + min;
     }
 
-    // Fungsi untuk menyederhanakan pecahan ke format LaTeX
     function getFractionLatex(num, den) {
         if (num === 0) return "0";
         let sign = (num * den < 0) ? "-" : "";
@@ -251,7 +317,6 @@
         return sign + "\\frac{" + num + "}{" + den + "}";
     }
 
-    // Fungsi untuk mengacak urutan array (Fisher-Yates)
     function shuffleArray(array) {
         for (let i = array.length - 1; i > 0; i--) {
             const j = Math.floor(Math.random() * (i + 1));
@@ -261,12 +326,12 @@
     }
 
     // --- ALGORITHMIC PATTERN GENERATORS ---
+    // (Perbaikan: Menggunakan \( dan \) alih-alih $ untuk inline MathJax)
 
-    // Level 1: Pemfaktoran Aljabar -> lim x->a (x^2 - (a+b)x + ab)/(x - a)
     function generateLevel1() {
         let a = getRandomInt(1, 9);
         let b = getRandomInt(1, 9);
-        while(a === b) b = getRandomInt(1, 9); // pastikan hasil tidak 0
+        while(a === b) b = getRandomInt(1, 9);
 
         let sum = a + b;
         let prod = a * b;
@@ -281,9 +346,9 @@
         }
 
         let explanation = `
-            Substitusi langsung $x = ${a}$ menghasilkan bentuk tak tentu $\\frac{0}{0}$.<br>
+            Substitusi langsung \\(x = ${a}\\) menghasilkan bentuk tak tentu \\(\\frac{0}{0}\\).<br>
             Faktorkan pembilang:<br>
-            $x^2 - ${sum}x + ${prod} = (x - ${a})(x - ${b})$<br><br>
+            \\(x^2 - ${sum}x + ${prod} = (x - ${a})(x - ${b})\\)<br><br>
             Maka limitnya menjadi:<br>
             $$ \\lim_{x \\to ${a}} \\frac{(x - ${a})(x - ${b})}{x - ${a}} $$
             $$ = \\lim_{x \\to ${a}} (x - ${b}) $$
@@ -293,15 +358,13 @@
         return { question: questionLatex, answerStr: correctAnswer.toString(), optionsArray: Array.from(options).map(String), explanation, level: 1 };
     }
 
-    // Level 2: Akar Sekawan -> lim x->a (sqrt(x+b) - sqrt(a+b))/(x - a)
     function generateLevel2() {
-        let S_options = [4, 9, 16, 25]; // Agar akar sempurna
+        let S_options = [4, 9, 16, 25]; 
         let S = S_options[getRandomInt(0, 3)];
         let a = getRandomInt(1, S - 1);
         let b = S - a;
         let rootS = Math.sqrt(S);
 
-        // Jawaban = 1 / (2 * sqrt(S))
         let correctAnswerLatex = getFractionLatex(1, 2 * rootS);
         let questionLatex = `$$ \\lim_{x \\to ${a}} \\frac{\\sqrt{x + ${b}} - ${rootS}}{x - ${a}} $$`;
 
@@ -312,7 +375,7 @@
         let optionsArray = [correctAnswerLatex, dist1, dist2, dist3, dist4];
 
         let explanation = `
-            Substitusi langsung menghasilkan $\\frac{0}{0}$. Kalikan dengan akar sekawan:<br>
+            Substitusi langsung menghasilkan \\(\\frac{0}{0}\\). Kalikan dengan akar sekawan:<br>
             $$ \\lim_{x \\to ${a}} \\frac{\\sqrt{x + ${b}} - ${rootS}}{x - ${a}} \\times \\frac{\\sqrt{x + ${b}} + ${rootS}}{\\sqrt{x + ${b}} + ${rootS}} $$
             $$ = \\lim_{x \\to ${a}} \\frac{(x + ${b}) - ${S}}{(x - ${a})(\\sqrt{x + ${b}} + ${rootS})} $$
             $$ = \\lim_{x \\to ${a}} \\frac{x - ${a}}{(x - ${a})(\\sqrt{x + ${b}} + ${rootS})} $$
@@ -323,13 +386,11 @@
         return { question: questionLatex, answerStr: correctAnswerLatex, optionsArray, explanation, level: 2 };
     }
 
-    // Level 3: Trigonometri -> lim x->0 (1 - cos(ax)) / (bx * sin(cx))
     function generateLevel3() {
         let a = getRandomInt(2, 6);
         let b = getRandomInt(1, 4);
         let c = getRandomInt(1, 4);
 
-        // Jawaban = a^2 / (2bc)
         let num = a * a;
         let den = 2 * b * c;
         let correctAnswerLatex = getFractionLatex(num, den);
@@ -338,12 +399,11 @@
         let cx = c === 1 ? "x" : c + "x";
         let questionLatex = `$$ \\lim_{x \\to 0} \\frac{1 - \\cos(${a}x)}{${bx} \\sin(${cx})} $$`;
 
-        let dist1 = getFractionLatex(num, b * c); // Lupa bagi 2
-        let dist2 = getFractionLatex(a, 2 * b * c); // Lupa kuadrat
-        let dist3 = getFractionLatex(-num, den); // Salah tanda
+        let dist1 = getFractionLatex(num, b * c); 
+        let dist2 = getFractionLatex(a, 2 * b * c); 
+        let dist3 = getFractionLatex(-num, den); 
         let dist4 = getFractionLatex(2 * num, b * c);
         
-        // Memastikan tidak ada duplikat di distractor
         let optSet = new Set([correctAnswerLatex, dist1, dist2, dist3, dist4]);
         while(optSet.size < 5) {
             optSet.add(getFractionLatex(getRandomInt(1,10), getRandomInt(2,8)));
@@ -351,11 +411,11 @@
         let optionsArray = Array.from(optSet);
 
         let explanation = `
-            Gunakan identitas trigonometri: $1 - \\cos(Ax) = 2 \\sin^2(\\frac{A}{2}x)$.<br>
-            Maka, $1 - \\cos(${a}x) = 2 \\sin^2(${a/2}x)$.<br><br>
+            Gunakan identitas trigonometri: \\(1 - \\cos(Ax) = 2 \\sin^2(\\frac{A}{2}x)\\).<br>
+            Maka, \\(1 - \\cos(${a}x) = 2 \\sin^2(${a/2}x)\\).<br><br>
             Bentuk limit menjadi:<br>
             $$ \\lim_{x \\to 0} \\frac{2 \\sin^2(${a/2}x)}{${bx} \\sin(${cx})} $$
-            Gunakan sifat limit trigonometri dasar $\\lim_{x \\to 0} \\frac{\\sin(px)}{qx} = \\frac{p}{q}$ :<br>
+            Gunakan sifat limit trigonometri dasar \\(\\lim_{x \\to 0} \\frac{\\sin(px)}{qx} = \\frac{p}{q}\\) :<br>
             $$ = \\frac{2 \\times (${a/2})^2}{${b} \\times ${c}} = \\frac{2 \\times ${num/4}}{${b*c}} = \\frac{${num/2}}{${b*c}} = ${correctAnswerLatex} $$
         `;
 
@@ -363,7 +423,6 @@
     }
 
     // --- GAME ENGINE ---
-
     let currentLevel = 1;
     let questionCount = 0;
     const maxQuestions = 10;
@@ -371,10 +430,41 @@
     let selectedOptionIndex = null;
     let history = []; 
     let score = 0;
+    
+    // Timer & Stats Variables
+    let totalTime = 30 * 60; // 30 Menit
+    let timerInterval;
+    let correctCount = 0;
+    let wrongCount = 0;
+
+    function formatTime(seconds) {
+        let m = Math.floor(seconds / 60);
+        let s = seconds % 60;
+        return `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+    }
+
+    function startTimer() {
+        document.getElementById('timer-display').innerText = formatTime(totalTime);
+        timerInterval = setInterval(() => {
+            totalTime--;
+            document.getElementById('timer-display').innerText = formatTime(totalTime);
+            
+            if (totalTime <= 300) { // Sisa 5 menit, warnakan merah
+                document.getElementById('timer-display').style.color = "var(--danger)";
+                document.getElementById('timer-display').style.fontWeight = "bold";
+            }
+
+            if (totalTime <= 0) {
+                clearInterval(timerInterval);
+                finishQuiz(true); // true = Timeout
+            }
+        }, 1000);
+    }
 
     function startQuiz() {
         document.getElementById('screen-start').classList.add('hidden');
         document.getElementById('screen-quiz').classList.remove('hidden');
+        startTimer();
         loadNextQuestion();
     }
 
@@ -386,7 +476,13 @@
 
     function loadNextQuestion() {
         selectedOptionIndex = null;
-        document.getElementById('btn-next').disabled = true;
+        
+        // Reset UI buttons & feedback
+        document.getElementById('btn-submit').classList.remove('hidden');
+        document.getElementById('btn-submit').disabled = true;
+        document.getElementById('btn-next-question').classList.add('hidden');
+        document.getElementById('feedback-container').classList.add('hidden');
+
         questionCount++;
 
         // Update UI Header
@@ -399,17 +495,14 @@
 
         // Generate Soal
         currentQuestionData = generateQuestionByLevel(currentLevel);
-        
-        // Render Teks Soal
         document.getElementById('question-text').innerHTML = currentQuestionData.question;
 
         // Render Opsi
         let optionsHtml = '';
         let labels = ['A', 'B', 'C', 'D', 'E'];
         
-        // Acak Opsi
         let shuffledOptions = shuffleArray([...currentQuestionData.optionsArray]);
-        currentQuestionData.shuffledOptions = shuffledOptions; // simpan urutan untuk validasi
+        currentQuestionData.shuffledOptions = shuffledOptions; 
 
         shuffledOptions.forEach((opt, idx) => {
             optionsHtml += `
@@ -420,33 +513,51 @@
         });
         document.getElementById('options-container').innerHTML = optionsHtml;
 
-        // Trigger MathJax untuk render ulang matematika
+        // Render MathJax
         MathJax.typesetPromise().catch((err) => console.log(err.message));
 
         // Ubah teks tombol jika soal terakhir
         if (questionCount === maxQuestions) {
-            document.getElementById('btn-next').innerText = "Selesai & Lihat Hasil";
+            document.getElementById('btn-next-question').innerText = "Selesai & Lihat Hasil";
         }
     }
 
     function selectOption(index) {
+        // Cek jika opsi sudah di-disable (setelah klik Cek Jawaban)
+        if(document.getElementById(`opt-${index}`).classList.contains('disabled')) return;
+
         selectedOptionIndex = index;
         
-        // Reset styles
-        document.querySelectorAll('.option-btn').forEach(btn => {
-            btn.classList.remove('selected');
-        });
-        
-        // Add style to selected
+        document.querySelectorAll('.option-btn').forEach(btn => btn.classList.remove('selected'));
         document.getElementById(`opt-${index}`).classList.add('selected');
         
-        // Enable button
-        document.getElementById('btn-next').disabled = false;
+        document.getElementById('btn-submit').disabled = false;
     }
 
     function submitAnswer() {
         let userPicked = currentQuestionData.shuffledOptions[selectedOptionIndex];
         let isCorrect = (userPicked === currentQuestionData.answerStr);
+
+        // Update Stats
+        if (isCorrect) {
+            correctCount++;
+            score += 10;
+        } else {
+            wrongCount++;
+        }
+        document.getElementById('stat-correct').innerText = correctCount;
+        document.getElementById('stat-wrong').innerText = wrongCount;
+
+        // Tampilkan Feedback (Tanpa membocorkan jawaban benar)
+        let feedbackEl = document.getElementById('feedback-container');
+        if (isCorrect) {
+            feedbackEl.className = "feedback-banner feedback-correct";
+            feedbackEl.innerHTML = "✅ TEPAT! Jawaban kamu benar.";
+        } else {
+            feedbackEl.className = "feedback-banner feedback-wrong";
+            feedbackEl.innerHTML = "❌ KURANG TEPAT! Pembahasan akan terbuka di akhir kuis.";
+        }
+        feedbackEl.classList.remove('hidden');
 
         // Rekam riwayat
         history.push({
@@ -459,23 +570,29 @@
             level: currentLevel
         });
 
-        if (isCorrect) {
-            score += 10;
-            // Adaptif: Naik level jika benar, maks level 3
-            currentLevel = Math.min(3, currentLevel + 1);
-        } else {
-            // Adaptif: Turun level jika salah, min level 1
-            currentLevel = Math.max(1, currentLevel - 1);
-        }
+        // Adaptif Logic
+        if (isCorrect) currentLevel = Math.min(3, currentLevel + 1);
+        else currentLevel = Math.max(1, currentLevel - 1);
 
+        // Disable options click
+        document.querySelectorAll('.option-btn').forEach(btn => btn.classList.add('disabled'));
+
+        // Toggle Buttons
+        document.getElementById('btn-submit').classList.add('hidden');
+        document.getElementById('btn-next-question').classList.remove('hidden');
+    }
+
+    function processNextQuestion() {
         if (questionCount < maxQuestions) {
             loadNextQuestion();
         } else {
-            finishQuiz();
+            finishQuiz(false);
         }
     }
 
-    function finishQuiz() {
+    function finishQuiz(isTimeout) {
+        clearInterval(timerInterval); // Hentikan timer
+
         document.getElementById('screen-quiz').classList.add('hidden');
         document.getElementById('screen-result').classList.remove('hidden');
 
@@ -485,16 +602,21 @@
         let passStatus = document.getElementById('pass-status');
         let message = document.getElementById('result-message');
 
-        if (score >= 80) {
+        if (isTimeout) {
+            circle.classList.add('failed');
+            passStatus.innerText = "⏳ WAKTU HABIS!";
+            passStatus.style.color = "var(--danger)";
+            message.innerText = `Kamu tidak berhasil menyelesaikan kuis tepat waktu. Total skor sementara: ${score}.`;
+        } else if (score >= 80) {
             circle.classList.add('passed');
             passStatus.innerText = "🎉 SELAMAT, ANDA LULUS!";
             passStatus.style.color = "var(--success)";
-            message.innerText = "Luar biasa! Penguasaan limit fungsi Anda sudah setara dengan standar UTBK/SNBT tingkat lanjut.";
+            message.innerText = `Luar biasa! Kamu berhasil menjawab ${correctCount} soal dengan benar (Skor ${score}).`;
         } else {
             circle.classList.add('failed');
-            passStatus.innerText = "💪 JANGAN MENYERAH, COBA LAGI!";
+            passStatus.innerText = "💪 JANGAN MENYERAH!";
             passStatus.style.color = "var(--danger)";
-            message.innerText = "Anda membutuhkan skor minimal 80 untuk lulus. Pelajari pembahasannya dan coba lagi!";
+            message.innerText = `Kamu hanya menjawab benar ${correctCount} soal. Butuh minimal skor 80 (8 Benar) untuk lulus.`;
         }
     }
 
@@ -505,15 +627,17 @@
         let html = '';
         history.forEach(item => {
             let statusText = item.isCorrect 
-                ? `<span class="correct-text">Jawaban Anda Benar (\\( ${item.userAnswer} \\))</span>` 
-                : `<span class="wrong-text">Jawaban Anda Salah (\\( ${item.userAnswer} \\)) - Seharusnya (\\( ${item.correctAnswer} \\))</span>`;
+                ? `<span style="color: var(--success); font-weight: bold;">✅ Jawaban Anda Benar (\\( ${item.userAnswer} \\))</span>` 
+                : `<span style="color: var(--danger); font-weight: bold;">❌ Jawaban Anda Salah (\\( ${item.userAnswer} \\)) - Seharusnya (\\( ${item.correctAnswer} \\))</span>`;
 
             html += `
                 <div class="explanation-item">
                     <h4>Soal ${item.questionNum} - Level ${item.level}</h4>
-                    <div style="margin: 10px 0;">${item.questionLatex}</div>
-                    <div style="margin-bottom: 10px;">${statusText}</div>
-                    <div style="font-size: 0.95rem; color: var(--text-main); border-top: 1px dashed #cbd5e1; padding-top: 10px;">
+                    <div style="margin: 15px 0; overflow-x: auto;">${item.questionLatex}</div>
+                    <div style="margin-bottom: 15px; padding-bottom: 10px; border-bottom: 1px dashed #cbd5e1;">
+                        ${statusText}
+                    </div>
+                    <div style="font-size: 0.95rem; color: var(--text-main);">
                         <strong>Pembahasan:</strong><br>
                         ${item.explanation}
                     </div>
